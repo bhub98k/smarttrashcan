@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧回收管理系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            color: #4d79ff;
+        }
+        h4 {
+            color: green;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .form-input, .btn, #file-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #4d79ff;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #3c63d2;
+        }
+        #control-panel, #file-upload {
+            display: none;
+        }
+        #data-display {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+        #prgbar {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        #bar {
+            height: 20px;
+            width: 0;
+            background-color: #4d79ff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="login-form">
+        <h2>智慧回收管理系統</h2>
+        <input id="username" class="form-input" type="text" placeholder="用戶名">
+        <input id="password" class="form-input" type="password" placeholder="密碼">
+        <button id="login-btn" class="btn" onclick="login()">登入</button>
+        <p id="login-error" style="color: red; display: none;">登入失敗，請檢查您的用戶名和密碼</p>
+    </div>
+
+    <div id="control-panel">
+        <h2>系統控制面板</h2>
+        <h3>命令控制</h3> 
+        <h4>選擇操作模式</h4>
+        <div>
+            <button class="btn" onclick="sendCommand('START')">啟動系統</button>
+            <button class="btn" onclick="sendCommand('STOP')">停止系統</button>
+            <button class="btn" onclick="sendCommand('RESTART')">重啟系統</button>
+            <button class="btn" onclick="sendCommand('mode')">選用模組</button>
+        </div>
+        <div id="data-display">當前可用數據: <span id="esp32-data">-</span></div>
+        <canvas id="myChart" width="400" height="200"></canvas>
+    </div>
+
+    <div id="file-upload">
+        <h2>模型文件上傳</h2>
+        <input id="file-input" type="file">
+        <button class="btn" onclick="uploadFile()">上傳模型</button>
+        <div id="prgbar">
+            <div id="bar"></div>
+        </div>
+        <p id="upload-status"></p>
+    </div>
+    
+
+    <div id="module-container"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+
+<script>
+    function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (username === "admin" && password === "123456") {
+            document.getElementById("login-form").style.display = "none";
+            document.getElementById("control-panel").style.display = "block";
+            document.getElementById("file-upload").style.display = "block";
+        } else {
+            document.getElementById("login-error").style.display = "block";
+        }
+    }
+
+    function sendCommand(command) {
+        if (command === "mode") {
+        } else {
+            fetch(`/command?cmd=${command}`, { method: "GET" })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Command response:", data);
+                })
+                .catch(error => {
+                    console.error("Command error:", error);
+                });
+        }
+    }
+
+    setInterval(() => {
+        fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("esp32-data").innerText = data.value;
+            })
+            .catch(error => {
+                console.error("Data error:", error);
+            });
+    }, 1000);
+
+    function uploadFile() {
+        const fileInput = document.getElementById("file-input");
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/upload", true);
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const percentComplete = (event.loaded / event.total) * 100;
+                document.getElementById("bar").style.width = percentComplete + "%";
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                document.getElementById("upload-status").innerText = "上傳成功";
+            } else {
+                document.getElementById("upload-status").innerText = "上傳失敗";
+            }
+        };
+        xhr.onerror = function() {
+            document.getElementById("upload-status").innerText = "上傳錯誤";
+        };
+
+        xhr.send(formData);
+    }
+</script>
+
+</body>
+</html>

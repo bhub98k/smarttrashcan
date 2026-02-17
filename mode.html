@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>模型控制页面</title>
+</head>
+<body>
+    <h2>上传 YOLO 模型文件</h2>
+    <input type="file" id="modelFile" />
+    <button onclick="uploadModel()">上传模型</button>
+    <p id="statusMessage"></p>
+
+    <script>
+        function uploadModel() {
+            const modelFile = document.getElementById('modelFile').files[0];
+            if (!modelFile) {
+                alert("请选择一个模型文件");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', modelFile);
+
+            fetch('/upload_model', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('statusMessage').innerText = data.message;
+            })
+            .catch(error => {
+                console.error("上传模型时出错：", error);
+                document.getElementById('statusMessage').innerText = "上传模型失败";
+            });
+        }
+    </script>
+</body>
+</html>
